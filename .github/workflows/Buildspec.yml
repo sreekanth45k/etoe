@@ -5,37 +5,37 @@ phases:
     runtime-versions:
       java: corretto17
     commands:
-      - echo "--- Installing dependencies ---"
-      - sudo dnf install -y awscli unzip
+      - echo "--- Installing AWS CLI ---"
+      - |
+        if ! sudo dnf install -y awscli; then
+          echo "--- Fallback: Manual AWS CLI Install ---"
+          curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+          rm -rf awscliv2.zip aws
+        fi
       - aws --version
+      - echo "AWS CLI installed successfully"
 
   pre_build:
     commands:
-      - echo "--- Environment check ---"
-      - echo "Current directory: $PWD"
-      - echo "Directory contents:"
+      - echo "--- Checking environment ---"
       - ls -la
-      - echo "Target directory contents:"
-      - ls -la target/ || echo "Target directory not found (this may be normal)"
+      - mvn --version
 
   build:
     commands:
-      - echo "--- Building application ---"
+      - echo "--- Building WAR file ---"
       - mvn clean package
-      - echo "--- Verifying build output ---"
-      - ls -la target/
-      - if [ ! -f "target/Ecomm.war" ]; then echo "ERROR: WAR file not found!"; exit 1; fi
 
   post_build:
     commands:
-      - echo "--- Uploading to S3 ---"
-      - echo "Uploading target/Ecomm.war to s3://${S3_BUCKET}/Ecomm.war"
-      - aws s3 ls "s3://${S3_BUCKET}/" || echo "WARNING: Cannot list bucket contents"
-      - aws s3 cp target/Ecomm.war "s3://${S3_BUCKET}/Ecomm.war"
-      - echo "--- Deploying to Tomcat ---"
-      - curl -v -u "${TOMCAT_USERNAME}:${TOMCAT_PASSWORD}" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
+      - echo "--- Deploying WAR to Tomcat ---"
+      - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
+      - echo "--- Uploading WAR to S3 ---"
+      - aws s3 cp target/Ecomm.war "s3://$S3_BUCKET/Ecomm.war"
+      - echo "✅ Deployment complete"
 
 artifacts:
   files:
     - target/Ecomm.war
-  name: ecom-artifact
