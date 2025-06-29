@@ -5,9 +5,8 @@ phases:
     runtime-versions:
       java: corretto17
     commands:
-      - echo Installing required tools...
+      - echo Installing dependencies...
       - yum install -y unzip curl
-      - echo Installing AWS CLI...
       - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
       - unzip awscliv2.zip
       - sudo ./aws/install
@@ -15,21 +14,21 @@ phases:
 
   pre_build:
     commands:
-      - echo Preparing the build environment...
+      - echo Preparing the environment...
 
   build:
     commands:
-      - echo Building the WAR file with Maven...
+      - echo Building WAR file...
       - mvn clean package
-      - echo WAR build completed.
+      - echo WAR file generated.
 
   post_build:
     commands:
       - echo Deploying WAR to Tomcat...
       - curl -v -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
-      - echo Uploading WAR to S3 bucket: $S3_BUCKET
+      - echo Uploading WAR to S3...
       - aws s3 cp target/Ecomm.war s3://$S3_BUCKET/Ecomm.war
-      - echo ✅ Build, deployment to Tomcat, and upload to S3 completed successfully.
+      - echo ✅ Deployment and upload complete.
 
 artifacts:
   files:
