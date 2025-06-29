@@ -33,7 +33,7 @@ phases:
       - echo "--- Deploying WAR to Tomcat ---"
       - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
       - echo "--- Uploading WAR to S3 ---"
-      - aws s3 cp target/Ecomm.war "s3://ecom.war/Ecomm.war"
+      - aws s3 cp target/Ecomm.war "s3://my-app-deploy-bucket/Ecomm.war"
       - echo "✅ Deployment complete"
 
 artifacts:
