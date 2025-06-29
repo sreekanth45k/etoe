@@ -1,67 +1,31 @@
-name: Java CI/CD with WAR to Tomcat and then S3
+version: 0.2
 
-on:
-  push:
-    branches: [ "master" ]
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+    commands:
+      - echo Installing dependencies...
+      - yum install -y awscli curl
 
-jobs:
-  build-deploy:
-    runs-on: ubuntu-latest
+  pre_build:
+    commands:
+      - echo Setting up environment...
 
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+  build:
+    commands:
+      - echo Building the WAR file...
+      - mvn clean package
+      - echo WAR build complete
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+  post_build:
+    commands:
+      - echo Deploying WAR to Tomcat...
+      - curl -v -u admin:admin -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
+      - echo Uploading WAR to S3...
+      - aws s3 cp target/Ecomm.war s3://your-bucket-name/Ecomm.war
+      - echo Build, Deploy and Upload complete.
 
-    - name: Build WAR with Maven
-      run: mvn clean package
-
-    - name: Deploy to Tomcat
-      run: |
-        # Assign secrets to shell variables for easier debugging and validation
-        TOMCAT_DEPLOY_BASE_URL="${{ secrets.TOMCAT_URL }}"
-        TOMCAT_USER="${{ secrets.TOMCAT_USERNAME }}"
-        TOMCAT_PASS="${{ secrets.TOMCAT_PASSWORD }}"
-        WAR_FILE="target/Ecomm.war"
-
-        # --- IMPORTANT: Validate TOMCAT_URL secret ---
-        # The TOMCAT_URL secret should contain the full base URL for Tomcat Manager's deploy endpoint.
-        # Example format: http://your-tomcat-server.com:8080/manager/text/deploy?path=/Ecomm
-        # Replace 'your-tomcat-server.com' and '8080' with your actual Tomcat server details.
-        # The 'path=/Ecomm' should match the context path you want for your Ecomm.war application.
-        # --- End Important ---
-
-        if [[ -z "$TOMCAT_DEPLOY_BASE_URL" ]]; then
-          echo "Error: The 'TOMCAT_URL' secret is empty. Please set it correctly in your GitHub repository secrets."
-          exit 1
-        fi
-
-        # Construct the full deployment URL including the update parameter
-        # This assumes TOMCAT_DEPLOY_BASE_URL already contains the '?path=/Ecomm' part if needed.
-        FULL_DEPLOY_URL="${TOMCAT_DEPLOY_BASE_URL}&update=true"
-
-        echo "Attempting to deploy ${WAR_FILE} to: ${FULL_DEPLOY_URL}"
-
-        # Use double quotes around variables in curl to handle potential spaces or special characters
-        # Ensure your Tomcat Manager is configured and the user has 'manager-script' role.
-        curl -v -u "${TOMCAT_USER}":"${TOMCAT_PASS}" \
-        -T "${WAR_FILE}" \
-        "${FULL_DEPLOY_URL}"
-
-    - name: Upload WAR to S3 (after Tomcat deployment)
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: |
-        # Set the default region for AWS CLI commands
-        aws configure set default.region ap-south-1
-        
-        # Upload the Ecomm.war file to the specified S3 bucket
-        # This will place the file at s3://my-app-deploy-bucket/Ecomm.war
-        echo "Uploading target/Ecomm.war to s3://my-app-deploy-bucket/Ecomm.war"
-        aws s3 cp target/Ecomm.war s3://my-app-deploy-bucket/Ecomm.war
+artifacts:
+  files:
+    - target/Ecomm.war
