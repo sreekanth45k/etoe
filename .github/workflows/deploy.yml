@@ -33,6 +33,12 @@ jobs:
           exit 1
         fi
 
+        
+        - name: Start Tomcat Server
+        run: |
+          /opt/tomcat/bin/startup.sh
+          sleep 10
+
         FULL_DEPLOY_URL="${TOMCAT_DEPLOY_BASE_URL}&update=true"
 
         echo "Attempting to deploy ${WAR_FILE} to: ${FULL_DEPLOY_URL}"
