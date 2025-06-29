@@ -3,12 +3,8 @@ phases:
     runtime-versions:
       java: corretto17
     commands:
-      - echo Installing tools...
-      - apt-get update && apt-get install -y curl unzip || yum install -y curl unzip || dnf install -y curl unzip
-      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      - unzip awscliv2.zip
-      - sudo ./aws/install
-      - aws --version
+      - echo Installing AWS CLI and curl...
+      - apt-get update && apt-get install -y awscli curl || yum install -y awscli curl || dnf install -y awscli curl
 
 
   pre_build:
