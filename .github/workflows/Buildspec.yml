@@ -1,29 +1,35 @@
+version: 0.2
+
 phases:
   install:
     runtime-versions:
       java: corretto17
     commands:
-      - echo Installing AWS CLI and curl...
-      - apt-get update && apt-get install -y awscli curl || yum install -y awscli curl || dnf install -y awscli curl
-
+      - echo Installing required tools...
+      - yum install -y unzip curl
+      - echo Installing AWS CLI...
+      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      - unzip awscliv2.zip
+      - sudo ./aws/install
+      - aws --version
 
   pre_build:
     commands:
-      - echo Setting up environment...
+      - echo Preparing the build environment...
 
   build:
     commands:
-      - echo Building the WAR file...
+      - echo Building the WAR file with Maven...
       - mvn clean package
-      - echo WAR build complete
+      - echo WAR build completed.
 
   post_build:
     commands:
       - echo Deploying WAR to Tomcat...
-      - curl -v -u admin:admin -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
-      - echo Uploading WAR to S3...
-      - aws s3 cp target/Ecomm.war s3://your-bucket-name/Ecomm.war
-      - echo Build, Deploy and Upload complete.
+      - curl -v -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
+      - echo Uploading WAR to S3 bucket: $S3_BUCKET
+      - aws s3 cp target/Ecomm.war s3://$S3_BUCKET/Ecomm.war
+      - echo ✅ Build, deployment to Tomcat, and upload to S3 completed successfully.
 
 artifacts:
   files:
