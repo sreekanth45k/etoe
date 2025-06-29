@@ -23,9 +23,10 @@ jobs:
 
     - name: Deploy to Tomcat
       run: |
-        curl -v -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
-        -T target/Ecomm.war \
-        "${{ secrets.TOMCAT_URL }}&update=true"
+         curl -v -u "${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }}" \
+         -T target/Ecomm.war \
+         "${{ secrets.TOMCAT_URL }}&update=true"
+
 
     - name: Upload WAR to S3 (after Tomcat deployment)
       env:
