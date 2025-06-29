@@ -30,9 +30,8 @@ phases:
     commands:
       - echo "--- Uploading to S3 ---"
       - echo "Uploading target/Ecomm.war to s3://${S3_BUCKET}/Ecomm.war"
-      - aws s3 ls "s3://${S3_BUCKET}/" || echo "WARNING: Cannot list bucket contents - may not have permissions"
+      - aws s3 ls "s3://${S3_BUCKET}/" || echo "WARNING: Cannot list bucket contents"
       - aws s3 cp target/Ecomm.war "s3://${S3_BUCKET}/Ecomm.war"
-      
       - echo "--- Deploying to Tomcat ---"
       - curl -v -u "${TOMCAT_USERNAME}:${TOMCAT_PASSWORD}" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
 
