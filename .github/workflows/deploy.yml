@@ -24,7 +24,7 @@ jobs:
     - name: Deploy to Tomcat
       run: |
         TOMCAT_DEPLOY_BASE_URL="${{ secrets.TOMCAT_URL }}"
-        TOMCAT_USER="${{ secrets.TOMCAT_USERNAME }}"
+        TOMCAT_USER="${{ secrets.TOMCAT_USER }}"
         TOMCAT_PASS="${{ secrets.TOMCAT_PASSWORD }}"
         WAR_FILE="target/Ecomm.war"
 
