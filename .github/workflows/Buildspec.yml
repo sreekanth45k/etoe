@@ -5,29 +5,29 @@ phases:
     runtime-versions:
       java: corretto17
     commands:
-      - echo "Installing AWS CLI..."
-      - curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      - unzip -q awscliv2.zip
-      - sudo ./aws/install
+      - echo "--- Installing AWS CLI (Alternative Method) ---"
+      # Method 1: Install via yum (preferred for Amazon Linux 2023)
+      - sudo dnf install -y awscli || {
+          echo "--- Fallback: Manual AWS CLI Install ---";
+          curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip";
+          unzip -q awscliv2.zip;
+          sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update;
+        }
       - aws --version
-
-  pre_build:
-    commands:
-      - echo "Preparing build environment"
-      - ls -la
+      - echo "AWS CLI installed successfully"
 
   build:
     commands:
-      - echo "Building WAR file..."
+      - echo "--- Building WAR file ---"
       - mvn clean package
 
   post_build:
     commands:
-      - echo "Deploying to Tomcat..."
+      - echo "--- Deploying WAR to Tomcat ---"
       - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
-      - echo "Uploading to S3..."
+      - echo "--- Uploading WAR to S3 ---"
       - aws s3 cp target/Ecomm.war "s3://$S3_BUCKET/Ecomm.war"
-      - echo "✅ Deployment successful"
+      - echo "✅ Deployment complete"
 
 artifacts:
   files:
