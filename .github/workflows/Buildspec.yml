@@ -1,4 +1,4 @@
-name: Java CI/CD with WAR to S3 and Tomcat
+name: Java CI/CD with WAR to Tomcat and then S3
 
 on:
   push:
@@ -21,16 +21,16 @@ jobs:
     - name: Build WAR with Maven
       run: mvn clean package
 
-    - name: Upload WAR to S3
+    - name: Deploy to Tomcat
+      run: |
+        curl -v -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
+        -T target/Ecomm.war \
+        "${{ secrets.TOMCAT_URL }}&update=true"
+
+    - name: Upload WAR to S3 (after Tomcat deployment)
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
         aws configure set default.region ap-south-1
         aws s3 cp target/Ecomm.war s3://my-app-deploy-bucket/Ecomm.war
-
-    - name: Deploy to Tomcat
-      run: |
-        curl -v -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
-        -T target/Ecomm.war \
-        "${{ secrets.TOMCAT_URL }}&update=true"
