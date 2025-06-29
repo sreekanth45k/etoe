@@ -5,30 +5,29 @@ phases:
     runtime-versions:
       java: corretto17
     commands:
-      - echo "--- Installing AWS CLI ---"
-      - echo "Downloading AWS CLI v2 bundle..."
-      - curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" || { echo "ERROR: curl failed"; exit 1; }
-      - unzip -q awscliv2.zip || { echo "ERROR: unzip failed"; exit 1; }
-      - sudo ./aws/install || { echo "ERROR: AWS CLI install failed"; exit 1; }
-      - aws --version || { echo "ERROR: AWS CLI not found"; exit 1; }
+      - echo "Installing AWS CLI..."
+      - curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      - unzip -q awscliv2.zip
+      - sudo ./aws/install
+      - aws --version
 
   pre_build:
     commands:
-      - echo "--- Preparing the environment ---"
+      - echo "Preparing build environment"
       - ls -la
 
   build:
     commands:
-      - echo "--- Building WAR file ---"
-      - mvn clean package || { echo "ERROR: Maven build failed"; exit 1; }
+      - echo "Building WAR file..."
+      - mvn clean package
 
   post_build:
     commands:
-      - echo "--- Deploying WAR to Tomcat ---"
-      - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true" || { echo "ERROR: Tomcat deployment failed"; exit 1; }
-      - echo "--- Uploading WAR to S3 ---"
-      - aws s3 cp target/Ecomm.war "s3://$S3_BUCKET/Ecomm.war" || { echo "ERROR: S3 upload failed"; exit 1; }
-      - echo "✅ Deployment complete."
+      - echo "Deploying to Tomcat..."
+      - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
+      - echo "Uploading to S3..."
+      - aws s3 cp target/Ecomm.war "s3://$S3_BUCKET/Ecomm.war"
+      - echo "✅ Deployment successful"
 
 artifacts:
   files:
