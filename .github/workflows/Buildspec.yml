@@ -30,11 +30,24 @@ phases:
 
   post_build:
     commands:
-      - echo "--- Deploying WAR to Tomcat ---"
-      - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
       - echo "--- Uploading WAR to S3 ---"
-      - aws s3 cp target/Ecomm.war "s3://$S3_BUCKET/Ecomm.war"
-      - echo "✅ Deployment complete"
+      - |
+        if [ -f "target/Ecomm.war" ]; then
+          echo "Attempting upload to s3://$S3_BUCKET/Ecomm.war"
+          aws s3 cp target/Ecomm.war "s3://$S3_BUCKET/Ecomm.war" --debug || {
+            echo "Failed to upload to S3";
+            echo "Possible causes:";
+            echo "1. S3_BUCKET not set or incorrect";
+            echo "2. Missing IAM permissions";
+            echo "3. File doesn't exist";
+            exit 1;
+          }
+        else
+          echo "Error: target/Ecomm.war not found!"
+          exit 1
+        fi
+      - echo "--- Deploying to Tomcat ---"
+      - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
 
 artifacts:
   files:
