@@ -15,14 +15,12 @@ phases:
   pre_build:
     commands:
       - echo "--- Preparing the environment ---"
-      - echo "Current directory contents:"
       - ls -la
 
   build:
     commands:
       - echo "--- Building WAR file ---"
       - mvn clean package || { echo "ERROR: Maven build failed"; exit 1; }
-      - echo "WAR file generated."
 
   post_build:
     commands:
@@ -30,7 +28,7 @@ phases:
       - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true" || { echo "ERROR: Tomcat deployment failed"; exit 1; }
       - echo "--- Uploading WAR to S3 ---"
       - aws s3 cp target/Ecomm.war "s3://$S3_BUCKET/Ecomm.war" || { echo "ERROR: S3 upload failed"; exit 1; }
-      - echo "✅ Deployment and upload complete."
+      - echo "✅ Deployment complete."
 
 artifacts:
   files:
