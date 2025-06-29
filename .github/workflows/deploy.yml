@@ -1,4 +1,4 @@
-name: Java CI/CD with WAR to Tomcat and then S3
+name: Java CI with WAR to Tomcat and then S3 and SNS
 
 on:
   push:
@@ -21,11 +21,17 @@ jobs:
     - name: Build WAR with Maven
       run: mvn clean package
 
-    - name: Deploy to Tomcat
+    - name: Start Tomcat Server
       run: |
-        TOMCAT_DEPLOY_BASE_URL="${{ secrets.TOMCAT_URL }}"
-        TOMCAT_USER="${{ secrets.TOMCAT_USER }}"
-        TOMCAT_PASS="${{ secrets.TOMCAT_PASSWORD }}"
+        /opt/tomcat/bin/startup.sh
+        sleep 10
+
+    - name: Deploy to Tomcat
+      env:
+        TOMCAT_DEPLOY_BASE_URL: ${{ secrets.TOMCAT_URL }}
+        TOMCAT_USER: ${{ secrets.TOMCAT_USER }}
+        TOMCAT_PASS: ${{ secrets.TOMCAT_PASSWORD }}
+      run: |
         WAR_FILE="target/Ecomm.war"
 
         if [[ -z "$TOMCAT_DEPLOY_BASE_URL" ]]; then
@@ -33,19 +39,13 @@ jobs:
           exit 1
         fi
 
-        
-        - name: Start Tomcat Server
-        run: |
-          /opt/tomcat/bin/startup.sh
-          sleep 10
-
-        FULL_DEPLOY_URL="${TOMCAT_DEPLOY_BASE_URL}&update=true"
+        FULL_DEPLOY_URL="${TOMCAT_DEPLOY_BASE_URL}/manager/text/deploy?path=/Ecomm&update=true"
 
         echo "Attempting to deploy ${WAR_FILE} to: ${FULL_DEPLOY_URL}"
 
-        curl -v -u "${TOMCAT_USER}":"${TOMCAT_PASS}" \
-        -T "${WAR_FILE}" \
-        "${FULL_DEPLOY_URL}"
+        curl -v -u "${TOMCAT_USER}:${TOMCAT_PASS}" \
+          -T "${WAR_FILE}" \
+          "${FULL_DEPLOY_URL}"
 
     - name: Upload WAR to S3 (after Tomcat deployment)
       env:
@@ -55,3 +55,15 @@ jobs:
         aws configure set default.region ap-south-1
         echo "Uploading target/Ecomm.war to s3://my-app-deploy-bucket/Ecomm.war"
         aws s3 cp target/Ecomm.war s3://my-app-deploy-bucket/Ecomm.war
+
+    - name: Notify via SNS
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        SNS_TOPIC_ARN: ${{ secrets.SNS_TOPIC_ARN }}
+      run: |
+        aws configure set default.region ap-south-1
+        aws sns publish \
+          --topic-arn "$SNS_TOPIC_ARN" \
+          --subject "🚀 Deployment Complete" \
+          --message "WAR file deployed to Tomcat and uploaded to S3 successfully."
