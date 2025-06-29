@@ -5,28 +5,26 @@ phases:
     runtime-versions:
       java: corretto17
     commands:
-      - echo "--- Installing AWS CLI ---"
-      - |
-        if ! sudo dnf install -y awscli; then
-          echo "--- Fallback: Manual AWS CLI Install ---"
-          curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip -q awscliv2.zip
-          sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
-          rm -rf awscliv2.zip aws
-        fi
+      - echo "--- Installing dependencies ---"
+      - sudo dnf install -y awscli unzip
       - aws --version
-      - echo "AWS CLI installed successfully"
 
   pre_build:
     commands:
-      - echo "--- Checking environment ---"
+      - echo "--- Environment check ---"
+      - echo "Current directory: $PWD"
+      - echo "Directory contents:"
       - ls -la
-      - mvn --version
+      - echo "Target directory contents:"
+      - ls -la target/ || echo "Target directory not found (this may be normal)"
 
   build:
     commands:
-      - echo "--- Building WAR file ---"
+      - echo "--- Building application ---"
       - mvn clean package
+      - echo "--- Verifying build output ---"
+      - ls -la target/
+      - if [ ! -f "target/Ecomm.war" ]; then echo "ERROR: WAR file not found!"; exit 1; fi
 
   post_build:
     commands:
@@ -42,4 +40,3 @@ artifacts:
   files:
     - target/Ecomm.war
   name: ecom-artifact
-    
