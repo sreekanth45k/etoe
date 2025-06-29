@@ -9,7 +9,7 @@ phases:
       - cat /etc/os-release # To re-confirm Amazon Linux 2023
 
       - echo "--- Running Network Connectivity Tests ---"
-      # Quoted these lines to ensure YAML treats them as single strings
+      # These lines must be quoted because of the || { ... } structure
       - "ping -c 4 8.8.8.8 || { echo \"ERROR: Cannot ping 8.8.8.8. Network connectivity issue suspected. Please check VPC/Subnet/Security Group/NAT Gateway configuration.\"; exit 1; }"
       - "ping -c 4 google.com || { echo \"ERROR: Cannot ping google.com. DNS resolution or network issue suspected.\"; exit 1; }"
       - echo "--- Network Tests Complete ---"
@@ -17,19 +17,23 @@ phases:
       - echo "--- Installing AWS CLI ---"
       - echo "Downloading AWS CLI v2 bundle..."
       - curl -v "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      - if [ $? -ne 0 ]; then echo "ERROR: curl failed to download awscliv2.zip. Check network or URL." && exit 1; fi
+      # This line must be quoted because of the if [ ... ]; then ... ; fi structure
+      - "if [ $? -ne 0 ]; then echo \"ERROR: curl failed to download awscliv2.zip. Check network or URL.\"; exit 1; fi"
 
       - echo "Unzipping AWS CLI v2 bundle..."
       - unzip awscliv2.zip
-      - if [ $? -ne 0 ]; then echo "ERROR: unzip failed. File might be corrupt or unzip utility is missing/broken." && exit 1; fi
+      # This line must be quoted because of the if [ ... ]; then ... ; fi structure
+      - "if [ $? -ne 0 ]; then echo \"ERROR: unzip failed. File might be corrupt or unzip utility is missing/broken.\"; exit 1; fi"
 
       - echo "Running AWS CLI installer..."
       - sudo ./aws/install
-      - if [ $? -ne 0 ]; then echo "ERROR: AWS CLI install script failed to execute properly." && exit 1; fi
+      # This line must be quoted because of the if [ ... ]; then ... ; fi structure
+      - "if [ $? -ne 0 ]; then echo \"ERROR: AWS CLI install script failed to execute properly.\"; exit 1; fi"
 
       - echo "Verifying AWS CLI installation..."
       - aws --version
-      - if [ $? -ne 0 ]; then echo "ERROR: AWS CLI not found in PATH or version check failed." && exit 1; fi
+      # This line must be quoted because of the if [ ... ]; then ... ; fi structure
+      - "if [ $? -ne 0 ]; then echo \"ERROR: AWS CLI not found in PATH or version check failed after install.\"; exit 1; fi"
       - echo "--- AWS CLI Installation Complete ---"
 
 
