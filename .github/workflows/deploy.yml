@@ -53,7 +53,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
         aws configure set default.region ap-south-1
-        echo "Uploading target/Ecomm.war to s3://my-app-deploy-bucket/Ecomm.war"
+        echo "Uploading target/Ecomm.war to s3://my-bucket-ecomm/Ecomm.war"
         aws s3 cp target/Ecomm.war s3://my-app-deploy-bucket/Ecomm.war
 
     - name: Notify via SNS
