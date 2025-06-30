@@ -1,69 +1,63 @@
-name: Java CI with WAR to Tomcat and then S3 and SNS
+version: 0.2
 
-on:
-  push:
-    branches: [ "master" ]
+ phases:
+  install:
+    runtime-versions:
+      java: corretto17
+    commands:
+      - echo Installing Maven and AWS CLI
+      - yum install -y maven awscli curl
+      - echo Build environment ready
 
-jobs:
-  build-deploy:
-    runs-on: ubuntu-latest
+  pre_build:
+    commands:
+      - echo Pre-build phase started
+      - aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+      - aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+      - aws configure set default.region ap-south-1
+      - echo Pre-build phase complete
 
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+  build:
+    commands:
+      - echo Building the WAR file
+      - mvn clean package
+      - echo WAR build complete
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+  post_build:
+    commands:
+      - echo Post-build phase started
 
-    - name: Build WAR with Maven
-      run: mvn clean package
-
-    - name: Start Tomcat Server
-      run: |
-        /opt/tomcat/bin/startup.sh
-        sleep 10
-
-    - name: Deploy to Tomcat
-      env:
-        TOMCAT_DEPLOY_BASE_URL: ${{ secrets.TOMCAT_URL }}
-        TOMCAT_USER: ${{ secrets.TOMCAT_USER }}
-        TOMCAT_PASS: ${{ secrets.TOMCAT_PASSWORD }}
-      run: |
+      # Deploy to Tomcat
+      - |
+        echo Deploying to Tomcat
         WAR_FILE="target/Ecomm.war"
 
-        if [[ -z "$TOMCAT_DEPLOY_BASE_URL" ]]; then
-          echo "Error: The 'TOMCAT_URL' secret is empty. Please set it correctly in your GitHub repository secrets."
+        if [[ -z "$TOMCAT_URL" ]]; then
+          echo "Error: TOMCAT_URL environment variable is not set"
           exit 1
         fi
 
-        FULL_DEPLOY_URL="${TOMCAT_DEPLOY_BASE_URL}/manager/text/deploy?path=/Ecomm&update=true"
+        FULL_DEPLOY_URL="${TOMCAT_URL}/manager/text/deploy?path=/Ecomm&update=true"
 
-        echo "Attempting to deploy ${WAR_FILE} to: ${FULL_DEPLOY_URL}"
+        echo "Deploying ${WAR_FILE} to: ${FULL_DEPLOY_URL}"
 
-        curl -v -u "${TOMCAT_USER}:${TOMCAT_PASS}" \
+        curl -v -u "${TOMCAT_USER}:${TOMCAT_PASSWORD}" \
           -T "${WAR_FILE}" \
           "${FULL_DEPLOY_URL}"
 
-    - name: Upload WAR to S3 (after Tomcat deployment)
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: |
-        aws configure set default.region ap-south-1
-        echo "Uploading target/Ecomm.war to s3://my-bucket-ecomm/Ecomm.war"
-        aws s3 cp target/Ecomm.war s3://my-app-deploy-bucket/Ecomm.war
+      # Upload WAR to S3
+      - |
+        echo Uploading WAR to S3
+        aws s3 cp target/Ecomm.war s3://my-bucket-ecomm/Ecomm.war
 
-    - name: Notify via SNS
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        SNS_TOPIC_ARN: ${{ secrets.SNS_TOPIC_ARN }}
-      run: |
-        aws configure set default.region ap-south-1
+      # Send SNS Notification
+      - |
+        echo Sending SNS notification
         aws sns publish \
           --topic-arn "$SNS_TOPIC_ARN" \
           --subject "🚀 Deployment Complete" \
           --message "WAR file deployed to Tomcat and uploaded to S3 successfully."
+
+artifacts:
+  files:
+    - target/Ecomm.war
