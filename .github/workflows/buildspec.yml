@@ -1,62 +1,39 @@
 version: 0.2
-
  phases:
-  install:
+ install:
     runtime-versions:
       java: corretto17
     commands:
-      - echo Installing Maven and AWS CLI
-      - yum install -y maven awscli curl
-      - echo Build environment ready
+      - echo "--- Installing AWS CLI ---"
+      - |
+        if ! sudo dnf install -y awscli; then
+          echo "--- Fallback: Manual AWS CLI Install ---"
+          curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+          rm -rf awscliv2.zip aws
+        fi
+      - aws --version
+      - echo "AWS CLI installed successfully"
 
   pre_build:
     commands:
-      - echo Pre-build phase started
-      - aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
-      - aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
-      - aws configure set default.region ap-south-1
-      - echo Pre-build phase complete
+      - echo "--- Checking environment ---"
+      - ls -la
+      - mvn --version
 
   build:
     commands:
-      - echo Building the WAR file
+      - echo "--- Building WAR file ---"
       - mvn clean package
-      - echo WAR build complete
 
   post_build:
     commands:
-      - echo Post-build phase started
-
-      # Deploy to Tomcat
-      - |
-        echo Deploying to Tomcat
-        WAR_FILE="target/Ecomm.war"
-
-        if [[ -z "$TOMCAT_URL" ]]; then
-          echo "Error: TOMCAT_URL environment variable is not set"
-          exit 1
-        fi
-
-        FULL_DEPLOY_URL="${TOMCAT_URL}/manager/text/deploy?path=/Ecomm&update=true"
-
-        echo "Deploying ${WAR_FILE} to: ${FULL_DEPLOY_URL}"
-
-        curl -v -u "${TOMCAT_USER}:${TOMCAT_PASSWORD}" \
-          -T "${WAR_FILE}" \
-          "${FULL_DEPLOY_URL}"
-
-      # Upload WAR to S3
-      - |
-        echo Uploading WAR to S3
-        aws s3 cp target/Ecomm.war s3://my-bucket-ecomm/Ecomm.war
-
-      # Send SNS Notification
-      - |
-        echo Sending SNS notification
-        aws sns publish \
-          --topic-arn "$SNS_TOPIC_ARN" \
-          --subject "🚀 Deployment Complete" \
-          --message "WAR file deployed to Tomcat and uploaded to S3 successfully."
+      - echo "--- Deploying WAR to Tomcat ---"
+      - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
+      - echo "--- Uploading WAR to S3 ---"
+      - aws s3 cp target/Ecomm.war "s3://my-app-deploy-bucket/Ecomm.war"
+      - echo "✅ Deployment complete"
 
 artifacts:
   files:
