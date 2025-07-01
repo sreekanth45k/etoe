@@ -1,5 +1,5 @@
 version: 0.2
- env:
+env:
   variables:
     ARTIFACT_BUCKET: "ecomm-warproject"  # Replace with your S3 bucket
     ARTIFACT_PATH: "warfile/"       # Optional: S3 key prefix
