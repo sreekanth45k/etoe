@@ -1,40 +1,37 @@
 version: 0.2
- phases:
- install:
+ env:
+  variables:
+    ARTIFACT_BUCKET: "ecomm-bucketforproject"  # Replace with your S3 bucket
+    ARTIFACT_PATH: "build-artifacts/"       # Optional: S3 key prefix
+
+phases:
+  install:
     runtime-versions:
-      java: corretto17
+      java: corretto11         # Use corretto8, corretto17 if needed
     commands:
-      - echo "--- Installing AWS CLI ---"
-      - |
-        if ! sudo dnf install -y awscli; then
-          echo "--- Fallback: Manual AWS CLI Install ---"
-          curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip -q awscliv2.zip
-          sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
-          rm -rf awscliv2.zip aws
-        fi
-      - aws --version
-      - echo "AWS CLI installed successfully"
+      - echo Installing Maven...
+      - yum install -y maven
 
   pre_build:
     commands:
-      - echo "--- Checking environment ---"
-      - ls -la
+      - echo Starting pre-build...
       - mvn --version
 
   build:
     commands:
-      - echo "--- Building WAR file ---"
-      - mvn clean package
+      - echo Building the Java package...
+      - mvn clean package -DskipTests
 
   post_build:
     commands:
-      - echo "--- Deploying WAR to Tomcat ---"
-      - curl -f -u "$TOMCAT_USERNAME:$TOMCAT_PASSWORD" -T target/Ecomm.war "http://3.109.208.89:8080/manager/text/deploy?path=/Ecomm&update=true"
-      - echo "--- Uploading WAR to S3 ---"
-      - aws s3 cp target/Ecomm.war "s3://my-app-deploy-bucket/Ecomm.war"
-      - echo "✅ Deployment complete"
+      - echo Build complete. Uploading artifact to S3...
+      - |
+        ARTIFACT_FILE=$(ls target/*.war | head -n 1)
+        echo "Found artifact: $ARTIFACT_FILE"
+        aws s3 cp "$ARTIFACT_FILE" "s3://$ARTIFACT_BUCKET/$ARTIFACT_PATH"
+      - echo Artifact pushed to s3://$ARTIFACT_BUCKET/$ARTIFACT_PATH
 
 artifacts:
   files:
-    - target/Ecomm.war
+    - target/*.war
+  discard-paths: yes
