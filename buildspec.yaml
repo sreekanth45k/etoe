@@ -1,0 +1,37 @@
+version: 0.2
+ env:
+  variables:
+    ARTIFACT_BUCKET: "ecomm-warproject"  # Replace with your S3 bucket
+    ARTIFACT_PATH: "warfile/"       # Optional: S3 key prefix
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11         # Use corretto8, corretto17 if needed
+    commands:
+      - echo Installing Maven...
+      - yum install -y maven
+
+  pre_build:
+    commands:
+      - echo Starting pre-build...
+      - mvn --version
+
+  build:
+    commands:
+      - echo Building the Java package...
+      - mvn clean package -DskipTests
+
+  post_build:
+    commands:
+      - echo Build complete. Uploading artifact to S3...
+      - |
+        ARTIFACT_FILE=$(ls target/*.war | head -n 1)
+        echo "Found artifact: $ARTIFACT_FILE"
+        aws s3 cp "$ARTIFACT_FILE" "s3://$ARTIFACT_BUCKET/$ARTIFACT_PATH"
+      - echo Artifact pushed to s3://$ARTIFACT_BUCKET/$ARTIFACT_PATH
+
+artifacts:
+  files:
+    - target/*.war
+  discard-paths: yes
