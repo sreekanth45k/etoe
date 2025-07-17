@@ -41,7 +41,7 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          TAG=latest
+          TAG=myapp
           DOCKER_IMAGE=${DOCKERHUB_USERNAME}/${IMAGE_NAME}:$TAG
           ECR_IMAGE=${ECR_REGISTRY}/${ECR_REPOSITORY}:$TAG
           echo "docker_image=$DOCKER_IMAGE" >> $GITHUB_OUTPUT
