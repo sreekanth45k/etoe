@@ -2,7 +2,7 @@ name: Push to Docker Hub and ECR
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   workflow_dispatch:
 
 jobs:
