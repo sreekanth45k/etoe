@@ -33,6 +33,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+        FROM node: 18 AS builder
+        LABEL maintainer: "John Doe"
+        FROM node: 18 AS runner
+
       # Login to Amazon ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
