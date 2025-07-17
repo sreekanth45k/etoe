@@ -4,7 +4,7 @@ name: Build and Push Docker Image to Docker Hub and ECR
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build-and-push:
