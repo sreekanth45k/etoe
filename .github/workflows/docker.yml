@@ -27,7 +27,7 @@ jobs:
 
 
       - name: Set image tag
-        id: myapp
+        id: tag
         run: echo "tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Build, tag, and push to Amazon ECR
