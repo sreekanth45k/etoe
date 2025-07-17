@@ -1,15 +1,22 @@
-FROM alpine/git as clone
-MAINTAINER stangella<sreatcloud@gmail.com>
+# Stage 1: Clone the Git repo
+FROM alpine/git AS clone
+LABEL maintainer="sreekanth <sreekanthk110@gmail.com>"
+
 WORKDIR /app
-RUN git clone https://github.com/sresrinivas/etoe.git
-# stage-two
-FROM maven:3.5-jdk-8-alpine as build
+RUN git clone https://github.com/sreekanth45k/etoe.git
+
+# Stage 2: Build the Maven project
+FROM maven:3.5-jdk-8-alpine AS build
+
 WORKDIR /app
-COPY --from=clone  /app/etoe  /app
-RUN mvn package
-# stage-third
-#lets try
+COPY --from=clone /app/etoe /app
+RUN mvn clean package
+
+# Stage 3: Deploy to Tomcat
 FROM tomcat:7-jre7
 
-ADD tomcat-users.xml /usr/local/tomcat/conf
-COPY --from=build /app/target/Ecomm.war /usr/local/tomcat/webapps
+# Optional: Configure Tomcat users
+COPY tomcat-users.xml /usr/local/tomcat/conf/
+
+# Deploy the WAR file to Tomcat
+COPY --from=build /app/target/Ecomm.war /usr/local/tomcat/webapps/
