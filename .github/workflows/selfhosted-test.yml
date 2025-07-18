@@ -1,23 +1,17 @@
-name: Test Self-Hosted Runner
+name: test-on-ec2
 
 on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:  # Allows you to trigger manually
+  workflow_dispatch:
 
 jobs:
-  test-on-ec2:
+  test:
     runs-on: self-hosted
-
     steps:
-      - name: Print Hello
-        run: echo "✅ Hello from EC2 Self-hosted runner!"
+      - name: Say hello
+        run: echo "Hello from EC2 self-hosted runner"
 
-      - name: Show Host Info
-        run: |
-          echo "🖥️ Running on: $(hostname)"
-          echo "👤 User: $(whoami)"
-          echo "📍 Directory: $(pwd)"
+      - name: Show current user
+        run: whoami
 
-      - name: Show Linux Version
-        run: cat /etc/redhat-release
+      - name: Show current date
+        run: date
