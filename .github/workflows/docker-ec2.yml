@@ -1,19 +1,12 @@
-name: Build and Push to Docker Hub and ECR
-
-on:
-  push:
-    branches:
-      - master
-  workflow_dispatch:
-
 jobs:
   docker-build-and-push:
-    runs-on: self-hosted  # 👈 THIS LINE tells GitHub to use EC2 self-hosted runner
+    runs-on: self-hosted  # or 'ubuntu-latest' if not using EC2 runner
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ✅ SET IMAGE TAG BASED ON GIT COMMIT SHA
       - name: Set image tag
         id: tag
         run: echo "tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
