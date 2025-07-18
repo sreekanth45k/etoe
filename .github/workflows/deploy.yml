@@ -1,0 +1,17 @@
+# .github/workflows/myworkflow.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: self-hosted  # ← This tells GitHub to run the job on your EC2 runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print message
+        run: echo "Running on EC2!"
