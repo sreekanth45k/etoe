@@ -27,3 +27,4 @@ jobs:
         tags: sreekanth45k/myapp:latest
         provenance: true
         sbom: true
+        attests: type=provenance
