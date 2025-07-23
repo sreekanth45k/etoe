@@ -20,7 +20,7 @@ jobs:
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
     - name: Enable BuildKit
-      run: echo '{"features":{"attestations": true}}' > /etc/buildkit/buildkitd.toml
+      run: echo '{"features":{"attestations"
  
 
     - name: Build and push Docker image
