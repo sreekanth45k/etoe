@@ -1,0 +1,232 @@
+---
+- name: CI Pipeline - Nexus + Clone, Build, Upload
+  hosts: all
+  become: yes
+
+  vars_files:
+    - nexuspass.yaml    # Your vault file with nexus_user and nexus_admin_password
+
+  vars:
+    github_repo: "https://github.com/Rohit6301/etoe.git"
+    repo_dest: "/opt/myproject"
+
+    java_package: "java-17"
+    maven_version: "3.9.11"
+    nexus_version: "3.81.1-01"
+
+    nexus_install_dir: "/opt/nexus"
+    nexus_data_dir: "/opt/sonatype-work"
+    nexus_user: "nexus"
+    nexus_url: "http://13.233.253.52:8081"
+    nexus_repo_id: "maven-releases"
+    nexus_repo_path: "{{ nexus_url }}/repository/{{ nexus_repo_id }}/"
+
+  tasks:
+    - name: Install required packages including git
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "{{ java_package }}"
+        - wget
+        - unzip
+        - git
+
+    - name: Create nexus user
+      user:
+        name: "{{ nexus_user }}"
+        shell: /bin/bash
+        home: "{{ nexus_install_dir }}"
+        create_home: yes
+
+    - name: Download Nexus
+      get_url:
+        url: "https://download.sonatype.com/nexus/3/nexus-{{ nexus_version }}-linux-x86_64.tar.gz"
+        dest: /tmp/nexus.tar.gz
+
+    - name: Extract Nexus
+      unarchive:
+        src: /tmp/nexus.tar.gz
+        dest: /opt/
+        remote_src: yes
+
+    - name: Remove existing nexus install directory if present
+      file:
+        path: "{{ nexus_install_dir }}"
+        state: absent
+
+    - name: Rename Nexus directory
+      command: mv /opt/nexus-{{ nexus_version }} {{ nexus_install_dir }}
+      args:
+        creates: "{{ nexus_install_dir }}/bin/nexus"
+
+    - name: Set permissions for Nexus directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ nexus_user }}"
+        group: "{{ nexus_user }}"
+        recurse: yes
+      loop:
+        - "{{ nexus_install_dir }}"
+        - "{{ nexus_data_dir }}"
+
+    - name: Configure Nexus to run as nexus user
+      lineinfile:
+        path: "{{ nexus_install_dir }}/bin/nexus.rc"
+        line: 'run_as_user="{{ nexus_user }}"'
+        create: yes
+
+    - name: Create Nexus systemd service
+      copy:
+        dest: /etc/systemd/system/nexus.service
+        content: |
+          [Unit]
+          Description=Nexus Repository Manager
+          After=network.target
+
+          [Service]
+          Type=forking
+          LimitNOFILE=65536
+          ExecStart={{ nexus_install_dir }}/bin/nexus start
+          ExecStop={{ nexus_install_dir }}/bin/nexus stop
+          User={{ nexus_user }}
+          Restart=on-abort
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Nexus
+      systemd:
+        name: nexus
+        enabled: yes
+        state: started
+
+    - name: Wait for Nexus UI to become available
+      uri:
+        url: "{{ nexus_url }}"
+        method: GET
+        return_content: no
+        status_code: 200
+      register: nexus_up
+      retries: 30
+      delay: 10
+      until: nexus_up.status == 200
+
+    - name: Check if Maven hosted repository exists
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories"
+        method: GET
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_admin_password }}"
+        force_basic_auth: yes
+        status_code: 200
+      register: repo_check
+
+    - name: Create Maven hosted repository if not exists
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/maven/hosted"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_admin_password }}"
+        force_basic_auth: yes
+        status_code: 201
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ nexus_repo_id }}"
+          online: true
+          recipe: "maven2-hosted"
+          storage:
+            blobStoreName: "default"
+            strictContentTypeValidation: true
+            writePolicy: "ALLOW"
+          cleanup:
+            policyNames: []
+          component:
+            proprietaryComponents: false
+          maven:
+            versionPolicy: "RELEASE"
+            layoutPolicy: "STRICT"
+      when: "'{{ nexus_repo_id }}' not in repo_check.json | map(attribute='name') | list"
+
+    - name: Download Maven
+      get_url:
+        url: "https://dlcdn.apache.org/maven/maven-3/{{ maven_version }}/binaries/apache-maven-{{ maven_version }}-bin.tar.gz"
+        dest: "/tmp/maven.tar.gz"
+
+    - name: Extract Maven
+      unarchive:
+        src: "/tmp/maven.tar.gz"
+        dest: "/opt/"
+        remote_src: yes
+
+    - name: Set Maven environment variables
+      copy:
+        dest: /etc/profile.d/maven.sh
+        content: |
+          export M2_HOME=/opt/apache-maven-{{ maven_version }}
+          export PATH=$M2_HOME/bin:$PATH
+      notify:
+        - Reload shell
+
+    - name: Clone GitHub repository
+      git:
+        repo: "{{ github_repo }}"
+        dest: "{{ repo_dest }}"
+        version: master
+        force: yes
+
+    - name: Create .mvn directory inside project
+      file:
+       path: "{{ repo_dest }}/.mvn"
+       state: directory
+       mode: '0755'
+
+
+    - name: Copy Maven settings.xml
+      copy:
+        src: /home/ansuser/settings.xml
+        dest: "{{ repo_dest }}/.mvn/settings.xml"
+
+    - name: Build with Maven
+      shell: |
+        source /etc/profile.d/maven.sh
+        cd {{ repo_dest }}
+        mvn clean package -s .mvn/settings.xml
+      args:
+        chdir: "{{ repo_dest }}"
+      register: build_output
+
+    - name: Find built WAR file
+      find:
+        paths: "{{ repo_dest }}/target"
+        patterns: "*.war"
+      register: artifact_files
+
+    - name: Deploy WAR to Nexus using Maven
+      shell: |
+        source /etc/profile.d/maven.sh
+        mvn deploy:deploy-file \
+          -Dfile={{ item.path }} \
+          -DgroupId=com.mycompany \
+          -DartifactId=Ecomm \
+          -Dversion=1.0 \
+          -Dpackaging=war \
+          -DrepositoryId=maven-releases \
+          -Durl={{ nexus_repo_path }} \
+          -DgeneratePom=true \
+          -s {{ repo_dest }}/.mvn/settings.xml
+      args:
+        chdir: "{{ repo_dest }}"
+      loop: "{{ artifact_files.files }}"
+      when: artifact_files.files | length > 0
+
+  handlers:
+    - name: Reload shell
+      shell: source /etc/profile.d/maven.sh
