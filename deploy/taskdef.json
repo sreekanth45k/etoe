@@ -11,7 +11,7 @@
       "image": "325511643680.dkr.ecr.ap-south-1.amazonaws.com/etoe/app:latest",
       "portMappings": [
         {
-          "containerPort": 80,
+          "containerPort": 8080,
           "protocol": "tcp"
         }
       ],
