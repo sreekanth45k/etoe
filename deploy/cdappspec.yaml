@@ -6,6 +6,6 @@ Resources:
         TaskDefinition: "taskdef.json"
         LoadBalancerInfo:
           ContainerName: "etoe-app"
-          ContainerPort: 80
-        PlatformVersion: "LATEST"
+          ContainerPort: 8080
+        PlatformVersion: "v0.2"
 
