@@ -7,5 +7,5 @@ Resources:
         LoadBalancerInfo:
           ContainerName: "etoe-app"
           ContainerPort: 8080
-        PlatformVersion: "v0.2"
+        PlatformVersion: "LATEST"
 
