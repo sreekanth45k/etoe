@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecomm
+  labels:
+    app: ecomm
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ecomm
+  template:
+    metadata:
+      labels:
+        app: ecomm
+    spec:
+      containers:
+      - name: ecomm-container
+        image: 325511643680.dkr.ecr.ap-south-1.amazonaws.com/etoe/app:v0.2
+        ports:
+        - containerPort: 8080
