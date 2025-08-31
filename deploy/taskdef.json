@@ -8,7 +8,7 @@
   "containerDefinitions": [
     {
       "name": "etoe-app",
-      "image": "325511643680.dkr.ecr.ap-south-1.amazonaws.com/etoe/app:latest",
+      "image": "325511643680.dkr.ecr.ap-south-1.amazonaws.com/etoe/app:v0.3",
       "portMappings": [
         {
           "containerPort": 8080,
