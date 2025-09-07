@@ -1,0 +1,55 @@
+name: Build, Push to ECR, and Deploy to EKS
+
+on:
+  push:
+    branches: [master]
+
+env:
+  IMAGE_TAG: v0.3
+  AWS_REGION: ap-south-1
+  REPOSITORY_URI: 325511643680.dkr.ecr.ap-south-1.amazonaws.com/etoe/app
+  CLUSTER_NAME: my-cluster29   # <-- replace with your actual EKS cluster name
+  K8S_NAMESPACE: default
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker Image
+        run: |
+          docker build -t $REPOSITORY_URI:$IMAGE_TAG .
+
+      - name: Push Docker Image
+        run: |
+          docker push $REPOSITORY_URI:$IMAGE_TAG
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+
+      - name: Apply Kubernetes Manifests
+        run: |
+          kubectl apply -f ecomm.yaml
+          kubectl apply -f ecomservice.yaml
+
+      - name: Set Latest Image in Deployment
+        run: |
+          kubectl set image deployment/ecomm ecomm=$REPOSITORY_URI:$IMAGE_TAG -n $K8S_NAMESPACE
+
+      - name: Verify Rollout Status
+        run: |
+          kubectl rollout status deployment/ecomm -n $K8S_NAMESPACE
