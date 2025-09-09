@@ -5,7 +5,7 @@ on:
     branches: [master]
 
 env:
-  IMAGE_TAG: v0.4
+  IMAGE_TAG: v0.5
   AWS_REGION: ap-south-1
   REPOSITORY_URI: 325511643680.dkr.ecr.ap-south-1.amazonaws.com/etoe/app
   CLUSTER_NAME: mycluster02   # <-- replace with your actual EKS cluster name
