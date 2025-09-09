@@ -7,8 +7,8 @@ on:
 env:
   IMAGE_TAG: v0.4
   AWS_REGION: ap-south-1
-  REPOSITORY_URI: 325511643680.dkr.ecr.ap-south-1.amazonaws.com/etoe/app
-  CLUSTER_NAME: my-cluster29   # <-- replace with your actual EKS cluster name
+  REPOSITORY_URI: 856380560704.dkr.ecr.ap-south-1.amazonaws.com/etoe/app
+  CLUSTER_NAME: Kubernetes   # <-- replace with your actual EKS cluster name
   K8S_NAMESPACE: default
 
 jobs:
