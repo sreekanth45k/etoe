@@ -44,18 +44,18 @@
     </plugin>
   </plugins>
 </build>     
-        <finalName>Ecomm</finalName>
-        <plugins>
-            <!-- Tomcat Deployment -->
-            <plugin>
-                <groupId>org.apache.tomcat.maven</groupId>
-                <artifactId>tomcat7-maven-plugin</artifactId>
-                <version>2.2</version>
-                <configuration>
-                    <url>http://43.205.207.107:8080/manager/text</url>
-                    <server>apache-tomcat</server> <!-- Use Jenkins credentials binding -->
-                    <path>/Ecomm</path>
-                </configuration>
+     <finalName>Ecomm</finalName>
+     <plugins>
+         <!-- Tomcat Deployment -->
+         <plugin>
+             <groupId>org.apache.tomcat.maven</groupId>
+             <artifactId>tomcat7-maven-plugin</artifactId>
+             <version>2.2</version>
+             <configuration>
+                  <url>http://43.205.207.107:8080/manager/text</url>
+                 <server>apache-tomcat</server> <!-- Use Jenkins credentials binding -->
+                 <path>/Ecomm</path>
+            </configuration>
             </plugin>
 
             <!-- Checkstyle -->
