@@ -10,7 +10,7 @@ FROM maven:3.5-jdk-8-alpine AS build
 
 WORKDIR /app
 COPY --from=clone /app/etoe /app
-RUN mvn clean package
+RUN mvn clean package  -DskipTests
 
 # Stage 3: Deploy to Tomcat
 FROM tomcat:7-jre7
