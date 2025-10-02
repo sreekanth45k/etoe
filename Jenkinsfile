@@ -32,9 +32,11 @@ pipeline {
             parallel {
                 stage("Unit Tests") {
                     steps {
-                        sh 'mvn test'
-                        junit 'target/surefire-reports/*.xml'
-                        archiveArtifacts artifacts: 'target/surefire-reports/*.xml', fingerprint: true
+                        sh 'mvn clean test'
+                         // Debug: list generated reports
+                         sh 'ls -l target/surefire-reports/'
+                         junit 'target/surefire-reports/*.xml'
+                         archiveArtifacts artifacts: 'target/surefire-reports/*.xml', fingerprint: true
                     }
                 }
 
@@ -53,11 +55,12 @@ pipeline {
                 stage("Secret Scan") {
                     steps {
                         sh '''
-                            gitleaks detect --source . \
+                            docker run --rm -v $PWD:/src zricethezav/gitleaks:latest detect \
+                                --source /src \
                                 --report-format sarif \
-                                --report-path gitleaks-report.sarif || true
+                                --report-path /src/gitleaks-report.sarif || true
                         '''
-                        archiveArtifacts artifacts: 'gitleaks-report.sarif'
+                        archiveArtifacts artifacts: 'gitleaks-report.sarif', allowEmptyArchive: true
                     }
                 }
 
@@ -78,6 +81,8 @@ pipeline {
         stage("Integration Tests") {
             steps {
                 sh 'mvn verify -P integration-tests'
+                // Debug: list generated integration test reports
+                sh 'ls -l target/failsafe-reports/'
                 junit 'target/failsafe-reports/*.xml'
                 archiveArtifacts artifacts: 'target/failsafe-reports/*.xml', fingerprint: true
             }
