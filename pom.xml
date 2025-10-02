@@ -1,153 +1,97 @@
-pipeline {
-    agent any
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-    tools {
-        jdk "java"
-        maven "M2_HOME"
-    }
+    <groupId>MyEcommerceGroup</groupId>
+    <artifactId>MyEcommerceArtifact</artifactId>
+    <packaging>war</packaging>
+    <version>1.0-SNAPSHOT</version>
+    <name>Simple Ecommerce Maven Webapp</name>
+    <url>http://maven.apache.org</url>
 
-    options {
-        timestamps()
-        buildDiscarder(logRotator(numToKeepStr: '5'))
-    }
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <name>internal-releases</name>
+            <url>http://3.110.223.194:8081/artifactory/etoe</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>internal-snapshots</name>
+            <url>http://3.110.223.194:8081/artifactory/etoe</url>
+        </snapshotRepository>
+    </distributionManagement>
 
-    parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'master', description: 'Git branch to build')
-        string(name: 'DOCKER_CREDENTIALS', defaultValue: 'dockercredentials', description: 'DockerHub credential ID')
-        string(name: 'SONAR_TOKEN_CRED_ID', defaultValue: 'sonar-token-id', description: 'Sonar token credential ID')
-    }
+    <dependencies>
+        <!-- JUnit 5 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
-    environment {
-        IMAGE_NAME = "sreekanth45k/etoe"
-    }
+    <build>
+        <finalName>Ecomm</finalName>
+        <plugins>
+            <!-- Surefire for Unit Tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                </configuration>
+            </plugin>
 
-    stages {
+            <!-- Tomcat Deployment -->
+            <plugin>
+                <groupId>org.apache.tomcat.maven</groupId>
+                <artifactId>tomcat7-maven-plugin</artifactId>
+                <version>2.2</version>
+                <configuration>
+                    <url>http://43.205.207.107:8080/manager/text</url>
+                    <server>apache-tomcat</server>
+                    <path>/Ecomm</path>
+                </configuration>
+            </plugin>
 
-        stage("Clone") {
-            steps {
-                git branch: "${params.BRANCH_NAME}", url: 'https://github.com/sreekanth45k/etoe.git'
-            }
-        }
+            <!-- Checkstyle -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.2.2</version>
+            </plugin>
 
-        stage("Parallel Checks") {
-            parallel {
-                stage("Unit Tests") {
-                    steps {
-                        sh 'mvn clean test'
-                        sh 'ls -l target/surefire-reports || true'
-                        junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-                    }
-                }
+            <!-- JaCoCo -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.11</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
-                stage("Checkstyle") {
-                    steps {
-                        sh 'mvn -B checkstyle:checkstyle'
-                        archiveArtifacts artifacts: 'target/checkstyle-result.xml', allowEmptyArchive: true
-                    }
-                }
-
-                stage("Dependency Analysis") {
-                    steps {
-                        sh 'mvn -B dependency:analyze || true'
-                    }
-                }
-
-                stage("Secret Scan (Gitleaks)") {
-                    steps {
-                        sh '''
-                          docker run --rm -v $PWD:/src zricethezav/gitleaks:latest detect \
-                            --source /src --report-format sarif --report-path /src/gitleaks-report.sarif || true
-                        '''
-                        archiveArtifacts artifacts: 'gitleaks-report.sarif', allowEmptyArchive: true
-                    }
-                }
-
-                stage("OWASP Dependency Check") {
-                    steps {
-                        sh '''
-                          mvn -B org.owasp:dependency-check-maven:check \
-                            -Dformat=ALL \
-                            -DoutputDirectory=target/dependency-check-report \
-                            -DfailBuildOnCVSS=9 || true
-                        '''
-                        archiveArtifacts artifacts: 'target/dependency-check-report/**/*', allowEmptyArchive: true
-                    }
-                }
-            }
-        }
-
-        stage("Integration Tests") {
-            steps {
-                sh 'mvn -B -Pintegration-tests verify || true'
-                junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
-            }
-        }
-
-        stage("SonarQube Analysis") {
-            steps {
-                withCredentials([string(credentialsId: "${params.SONAR_TOKEN_CRED_ID}", variable: 'SONAR_TOKEN')]) {
-                    withSonarQubeEnv('MySonarQube') {
-                        sh """
-                          mvn clean package sonar:sonar \
-                             -Dsonar.login=$SONAR_TOKEN \
-                             -Dsonar.projectKey=MyEcommerceArtifact \
-                             -Dsonar.projectName=MyEcommerceArtifact \
-                             -Dsonar.java.binaries=target/Ecomm/WEB-INF/classes
-                        """
-                    }
-                }
-            }
-        }
-
-        stage("Wait for SonarQube Quality Gate") {
-            steps {
-                script {
-                    try {
-                        timeout(time: 15, unit: 'MINUTES') {
-                            waitForQualityGate abortPipeline: true
-                        }
-                    } catch (err) {
-                        echo "SonarQube Quality Gate check timed out or failed: ${err}"
-                        currentBuild.result = 'UNSTABLE'
-                    }
-                }
-            }
-        }
-
-        stage("Generate SBOM") {
-            steps {
-                sh 'mvn -B cyclonedx:makeAggregateBom || true'
-                archiveArtifacts artifacts: 'target/bom.xml', allowEmptyArchive: true
-            }
-        }
-
-        stage("Build & Package") {
-            steps {
-                sh 'mvn -B -DskipTests=true clean package'
-                archiveArtifacts artifacts: 'target/*.war', fingerprint: true
-            }
-        }
-
-        stage("Docker Build & Push") {
-            steps {
-                withCredentials([usernamePassword(credentialsId: "${params.DOCKER_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
-                      docker build -t ${IMAGE_NAME}:${BRANCH_NAME} .
-                      echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                      docker push ${IMAGE_NAME}:${BRANCH_NAME}
-                    """
-                }
-            }
-        }
-
-    }
-
-    post {
-        always {
-            cleanWs()
-        }
-        failure {
-            echo "Build failed. Check console logs."
-        }
-    }
-}
+            <!-- OWASP Dependency Check -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>8.4.2</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
