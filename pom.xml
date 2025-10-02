@@ -7,55 +7,55 @@
     <artifactId>MyEcommerceArtifact</artifactId>
     <packaging>war</packaging>
     <version>1.0-SNAPSHOT</version>
-    <name>Simple Ecomerce Maven Webapp</name>
+    <name>Simple Ecommerce Maven Webapp</name>
     <url>http://maven.apache.org</url>
 
     <distributionManagement>
         <repository>
             <id>central</id>
-            <name>ip-172-31-10-127.ap-south-1.compute.internal-releases</name>
+            <name>internal-releases</name>
             <url>http://3.110.223.194:8081/artifactory/etoe</url>
         </repository>
         <snapshotRepository>
             <id>snapshots</id>
-            <name>ip-172-31-10-127.ap-south-1.compute.internal-snapshots</name>
+            <name>internal-snapshots</name>
             <url>http://3.110.223.194:8081/artifactory/etoe</url>
         </snapshotRepository>
     </distributionManagement>
 
     <dependencies>
-    <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <version>5.10.0</version>
-        <scope>test</scope>
-    </dependency>
-</dependencies>
-          
-<build>
-  <plugins>
-    <plugin>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-surefire-plugin</artifactId>
-      <version>3.1.2</version>
-      <configuration>
-        <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-      </configuration>
-    </plugin>
-  </plugins>
-</build>     
-     <finalName>Ecomm</finalName>
-     <plugins>
-         <!-- Tomcat Deployment -->
-         <plugin>
-             <groupId>org.apache.tomcat.maven</groupId>
-             <artifactId>tomcat7-maven-plugin</artifactId>
-             <version>2.2</version>
-             <configuration>
-                  <url>http://43.205.207.107:8080/manager/text</url>
-                 <server>apache-tomcat</server> <!-- Use Jenkins credentials binding -->
-                 <path>/Ecomm</path>
-            </configuration>
+        <!-- JUnit 5 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>Ecomm</finalName>
+        <plugins>
+            <!-- Surefire for Unit Tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                </configuration>
+            </plugin>
+
+            <!-- Tomcat Deployment -->
+            <plugin>
+                <groupId>org.apache.tomcat.maven</groupId>
+                <artifactId>tomcat7-maven-plugin</artifactId>
+                <version>2.2</version>
+                <configuration>
+                    <url>http://43.205.207.107:8080/manager/text</url>
+                    <server>apache-tomcat</server>
+                    <path>/Ecomm</path>
+                </configuration>
             </plugin>
 
             <!-- Checkstyle -->
