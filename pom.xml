@@ -44,8 +44,6 @@
     </plugin>
   </plugins>
 </build>     
-
-    <build>
         <finalName>Ecomm</finalName>
         <plugins>
             <!-- Tomcat Deployment -->
